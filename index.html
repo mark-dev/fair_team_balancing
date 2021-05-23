@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<style>
+    td {
+        width: 150px;
+    }
+</style>
+<script src="main.js"></script>
+<script>
+    window.onload = (event) => {
+        initUI()
+    };
+</script>
+<body>
+<table>
+    <tr>
+        <td>
+            <a>Количество игроков в группе</a>
+        </td>
+        <td>
+            <input type="number" id="countPerGroupInput" name="countPerGroup" value="4">
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <a>Список игроков</a>
+        </td>
+        <td>
+            <textarea id="playersListTextArea" name="playerList" style="height: 300px">
+Player1 10
+Player2 20
+Player3 15
+Player4 30
+Player5 70
+Player7 1</textarea>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <input type="button" id="clearBtn" value="Clear">
+        </td>
+        <td>
+            <input type="button" id="generateBtn" value="Generate">
+        </td>
+    </tr>
+    <tr id="groupsTableRow"></tr>
+</table>
+</body>
+</html>
