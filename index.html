@@ -2,17 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Fair teams</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<style>
-    td {
-        width: 150px;
-    }
-</style>
 <script src="main.js"></script>
 <script>
     window.onload = (event) => {
         initUI()
+      //  clickGenerate()
     };
 </script>
 <body>
@@ -22,7 +19,15 @@
             <a>Количество игроков в группе</a>
         </td>
         <td>
-            <input type="number" id="countPerGroupInput" name="countPerGroup" value="4">
+            <input type="number" id="countPerGroupInput" name="countPerGroup" value="4" style="width: 300px">
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <a href="https://en.wikipedia.org/wiki/Simulated_annealing#:~:text=Simulated%20annealing%20(SA)%20is%20a,space%20for%20an%20optimization%20problem.">Кол-во итераций</a>
+        </td>
+        <td>
+            <input type="number" id="permutationCount" name="permutationCount" value="100" style="width: 300px">
         </td>
     </tr>
     <tr>
@@ -30,24 +35,72 @@
             <a>Список игроков</a>
         </td>
         <td>
-            <textarea id="playersListTextArea" name="playerList" style="height: 300px">
-Player1 10
-Player2 20
-Player3 15
-Player4 30
-Player5 70
-Player7 1</textarea>
+            <textarea id="playersListTextArea" name="playerList" style="height: 400px;width: 300px">
+Алексеева Юля 40
+Введенская Ирина 60
+
+Галиев Рустам 60
+
+Грачева Анна 30
+Енютина Галина 60
+Ермак Наталья 60
+Ефимов Алексей 55
+Луговая Валерия 65
+Макарова Анна 60
+Маркова Наталья 75
+
+Новрузова Наталья 25
+
+Першина Ольга 50
+
+Филлипова Вера 25
+Чернышов Иван 50
+Чернышова Елена 60
+Шаляева Татьяна 30
+
+Перес Марк 85
+Мустафина Регина 40
+Введенский Алексей 90
+Галиева Диляра 70
+Шляфер Илья 70
+Процевская Людмила 50
+Янчевская Ления 70
+Быков Владимир 100
+            </textarea>
         </td>
     </tr>
     <tr>
         <td>
-            <input type="button" id="clearBtn" value="Clear">
+            <a id="clearBtn" href="#" class="button5" style="background-color:#71f9ff;">Очистить</a>
         </td>
         <td>
-            <input type="button" id="generateBtn" value="Generate">
+            <a id="generateBtn" href="#" class="button5" style="background-color:#42cc8c;">Генерация</a>
         </td>
     </tr>
-    <tr id="groupsTableRow"></tr>
+</table>
+
+<table>
+    <tr>
+        <td class="show-after-generate" style="width: 100%;">Ручное распределение игроков</td>
+    </tr>
+    <tr id="preDefinedPlayersTableRow"></tr>
+    <tr class="show-after-generate">
+        <td style="width: 100%">
+            <b>Результат распределения</b>
+        </td>
+    </tr>
+    <tr class="show-after-generate" id="groupsTableRow"></tr>
+
+    <tr class="show-after-generate">
+
+        <td style="width: 100%">
+            <br>
+            <span>
+                <b>Качество распределения: </b>
+                <b id="scoreLabel" style="color: red;font-size: 24px"></b>
+            </span>
+        </td>
+    </tr>
 </table>
 </body>
 </html>
