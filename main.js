@@ -96,9 +96,7 @@ class PlayerGroup {
         parts.push(totalWeight)
         return parts.join('\n')
     }
-    hasPlaces() {
-        return this._players.length < this._maxPlayers
-    }
+
     pickPlayersFrom(players, targetWeight) {
         let tempPlayersCopy = Array.from(players)
         let currentWeight = this.weight()
@@ -295,17 +293,9 @@ function averageWeightedBalancing(players, groupCount, playerPerGroup, preDefine
     }
     const targetGroupWeight = playerWeightSum / groupCount;
 
-    // We will form empty groups first
-    playerGroups.sort((a,b) => b.weight() - a.weight())
-//    players.sort((a,b) => b.weight() - a.weight())
-     shuffleArray(players)
-   // shuffleArray(playerGroups)
 
-    // Strong players first
-    // players.sort((a,b) => b.weight() - a.weight())
-
-    // Split players to teams
-
+    shuffleArray(playerGroups)
+    shuffleArray(players)
 
     let remPlayers = new Set(players)
     for(let group of playerGroups){
