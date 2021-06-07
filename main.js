@@ -48,30 +48,9 @@ class PlayerGroup {
         }
     }
 
-    canSwap(){
-        //At least one player is not anchored
-        return (this._players.length > this._anchorPlayers.size)
+    hasTeamAnchor(p) {
+        return this._anchorPlayers.has(p)
     }
-
-    getPlayerForSwap(){
-        let selectedIndex = null
-        let selectedPlayer = null
-
-        while (selectedIndex==null) {
-            let rndIndex = getRandomInt(0,this._players.length)
-            let player = this._players[rndIndex]
-            if(!this._anchorPlayers.has(player)) {
-                selectedIndex = rndIndex
-                selectedPlayer = player
-            }
-        }
-        return [selectedPlayer, selectedIndex]
-    }
-
-    setPlayerAtIndex(index, newPlayer) {
-        this._players[index] = newPlayer
-    }
-
 
     weight() {
         let totalWeight = 0
@@ -96,56 +75,84 @@ class PlayerGroup {
         parts.push(totalWeight)
         return parts.join('\n')
     }
-    hasPlaces() {
-        return this._players.length < this._maxPlayers
-    }
+
     pickPlayersFrom(players, targetWeight) {
-        let tempPlayersCopy = Array.from(players)
+        let allCandidates = Array.from(players)
         let currentWeight = this.weight()
 
-        const solution = this._pickPlayers(tempPlayersCopy, 0, currentWeight, targetWeight, this._players, this._maxPlayers)
-        this._players = solution[1]
+        let possibleSolutions = this._pickPlayers(allCandidates, 0, currentWeight,
+            targetWeight, this._players, this._maxPlayers)
+        return possibleSolutions
     }
 
-    _pickPlayers(players, pIndex, curSum, targetSum, team, teamSize) {
+    _pickPlayers(allCandidates, pIndex, curSum, targetSum, team, teamSize) {
 
-        if(team.length === teamSize || pIndex === players.length) {
+        if(team.length === teamSize || pIndex === allCandidates.length) {
             const score = Math.abs(targetSum-curSum)
-            return [score,[...team]]
+            return [
+                [score, [...team]]
+            ]
         }
 
-        const playerOnIndex = players[pIndex]
+        const playerOnIndex = allCandidates[pIndex]
 
         team.push(playerOnIndex)
-        const pick = this._pickPlayers(players, pIndex+1, curSum + playerOnIndex.weight(),targetSum,team, teamSize)
+        const pick = this._pickPlayers(allCandidates, pIndex+1, curSum + playerOnIndex.weight(),targetSum,team, teamSize)
         team.pop()
 
-        const notPick = this._pickPlayers(players, pIndex+1, curSum,targetSum, team, teamSize)
+        const notPick = this._pickPlayers(allCandidates, pIndex+1, curSum,targetSum, team, teamSize)
 
-        return this._chooseSolution(pick, notPick)
+        let solutionCandidates = []
+        solutionCandidates.push(...pick)
+        solutionCandidates.push(...notPick)
+
+        return this._chooseSolutions(solutionCandidates)
     }
 
-    _chooseSolution(first, second) {
-        const score1 = first[0]
-        const score2 = second[0]
+    _chooseSolutions(candidates) {
+       // candidates.sort((a,b) => b[1].length - a[1].length || a[0] - b[0])
+        let result = []
 
-        const team1_length = first[1].length
-        const team2_length = second[1].length
-        if (team1_length === team2_length) {
-            if (score1 < score2) {
-                return first;
-            } else {
-                return second
+        //heuristics: if different players has same weight combination -> ignore this solution
+        let knownSolutionCombinations = []
+
+        for(let c of candidates) {
+            // Weight combination fingerprint check [if any]
+            if(knownSolutionCombinations.length > 0) {
+                let weightCombinationUnique = true;
+
+                for (let knownFingerprint of knownSolutionCombinations) {
+                    let fingerPrintAlreadyExists = true
+                    //Do not check same weight combinations
+                    for (let p of c[1]) {
+                        if (!knownFingerprint.has(p.weight())) {
+                            fingerPrintAlreadyExists = false;
+                            break;
+                        }
+                    }
+
+                    if (fingerPrintAlreadyExists) {
+                        weightCombinationUnique = false;
+                        break;
+                    }
+                }
+
+                if (!weightCombinationUnique) {
+                    continue
+                }
             }
+
+            result.push(c)
+
+            let weightCombinationFingerprint = new Set()
+            for( let p of c[1]) {
+                weightCombinationFingerprint.add(p.weight())
+            }
+
+            knownSolutionCombinations.push(weightCombinationFingerprint)
+
         }
-        else {
-            if(team1_length > team2_length) {
-                return first;
-            }
-            else {
-                return second;
-            }
-        }
+        return result;
     }
 }
 
@@ -190,16 +197,10 @@ function initUI(){
 
     const playerList = document.getElementById('playersListTextArea')
     const generateBtn = document.getElementById('generateBtn')
-    const clearBtn = document.getElementById('clearBtn')
     const groupsTableRow = document.getElementById('groupsTableRow')
     const preDefinedPlayersTableRow = document.getElementById('preDefinedPlayersTableRow')
 
     const countPerGroupInput = document.getElementById('countPerGroupInput')
-    clearBtn.onclick = function () {
-        groupsTextAreaArray.forEach(textArea => {
-            textArea.value = ''
-        })
-    }
 
     generateBtn.onclick = function (){
         var players = parsePlayersFromText(playerList.value)
@@ -250,16 +251,18 @@ function initUI(){
 }
 function generateGroups(players, groupCount, playerPerGroup, preDefinedPlayers) {
 
-    let permutationCount = parseInt(document.getElementById('permutationCount').value)
-    let initialSolution = averageWeightedBalancing(players,groupCount, playerPerGroup, preDefinedPlayers)
+    console.time('Solution')
+    let solution = averageWeightedBalancing(players,groupCount, playerPerGroup, preDefinedPlayers)
+    console.timeEnd('Solution')
 
-    let simulatedSolution = simulatedAnnealing(initialSolution, permutationCount)
-    console.log('Solution score is: %d', simulatedSolution[1])
-    for( let g of simulatedSolution[0]) {
+    let solutionQuality = solution[0]
+    let solutionGroups = solution[1]
+
+    for( let g of solutionGroups) {
         g.showOnGUI()
     }
+
     let scoreLabel = document.getElementById('scoreLabel')
-    let solutionQuality = simulatedSolution[1]
     if(solutionQuality === 0) {
         scoreLabel.style.color = 'green'
     }
@@ -295,27 +298,84 @@ function averageWeightedBalancing(players, groupCount, playerPerGroup, preDefine
     }
     const targetGroupWeight = playerWeightSum / groupCount;
 
-    // We will form empty groups first
-    playerGroups.sort((a,b) => b.weight() - a.weight())
-//    players.sort((a,b) => b.weight() - a.weight())
-     shuffleArray(players)
-   // shuffleArray(playerGroups)
-
-    // Strong players first
-    // players.sort((a,b) => b.weight() - a.weight())
-
-    // Split players to teams
-
+    // We will form low groups first
+    playerGroups.sort((a,b) => a.weight() - b.weight())
+    shuffleArray(players)
 
     let remPlayers = new Set(players)
-    for(let group of playerGroups){
-        group.pickPlayersFrom(remPlayers, targetGroupWeight)
+    let solution = groupChooseRecursive(0, playerGroups, remPlayers, targetGroupWeight)
+    let groupPlayerArr = solution[1]
+    let solutionScore = solution[0]
+    for(let groupId = 0 ; groupId < playerGroups.length; groupId ++) {
+        let group = playerGroups[groupId]
+        group._players = groupPlayerArr[groupId]
+    }
+
+    return [solutionScore,playerGroups]
+}
+
+function groupChooseRecursive(groupIndex, groups, remPlayers, targetGroupWeight){
+
+    if(groupIndex === groups.length) {
+        let solutionArr = []
+        for(let g of groups) {
+            let elem = [...g.players()]
+            solutionArr.push(elem)
+        }
+        let solutionScore = scoreSolution(groups)
+        return [solutionScore, solutionArr]
+    }
+
+    let group = groups[groupIndex]
+
+    let solutions = group.pickPlayersFrom(remPlayers, targetGroupWeight)
+
+    console.log('We have %d solutions for group: %d', solutions.length, groupIndex)
+    for(let s of solutions) {
+        console.log(s.toString())
+        console.log('===')
+    }
+
+    let bestSolutionScore = null;
+    let bestSolution = null;
+
+    for(let s of solutions) {
+
+        let originalPlayers = group._players
+
+        group._players = s[1]
+
         // This players already choosen
         group.players().forEach(p => {
             remPlayers.delete(p)
         })
+
+
+        //Backtrack
+        let solutionBacktrack = groupChooseRecursive(groupIndex+1, groups, remPlayers, targetGroupWeight)
+
+        let backtrackScore = solutionBacktrack[0]
+        if(!bestSolutionScore || bestSolutionScore > backtrackScore) {
+            bestSolutionScore = backtrackScore
+            bestSolution = solutionBacktrack[1]
+        }
+
+        //Revert backtrack objects
+        group.players().forEach(p => {
+            //Anchored players is not available for backtrack
+            if(!group.hasTeamAnchor(p)) {
+                remPlayers.add(p)
+            }
+        })
+
+        group._players = originalPlayers
+
+        if(backtrackScore === 0 ) {
+            break;
+        }
     }
-    return playerGroups
+
+    return [bestSolutionScore,bestSolution]
 }
 
 function scoreSolution(groups) {
@@ -328,82 +388,6 @@ function scoreSolution(groups) {
     }
     return maxGroupW - minGroupW
 }
-function getGroupsForSwap(groups) {
-    let g1 = null
-    let g2 = null;
-    let visitedIndexes = new Set()
-    while(g1 == null || g2 ==null) {
-
-        //Can't select two groups
-        if(groups.length === visitedIndexes.size) {
-            break
-        }
-
-        let g1Index = getRandomInt(0,groups.length)
-        let g2Index = getRandomInt(0,groups.length)
-
-        visitedIndexes.add(g1Index)
-        visitedIndexes.add(g2Index)
-
-        let g1Candidate = groups[g1Index]
-        let g2Candidate = groups[g2Index]
-        if(!g1 && g1Candidate.canSwap() && g1Candidate !== g2) {
-            g1 = g1Candidate
-        }
-
-        if(g2 == null && g2Candidate.canSwap() && g2Candidate !== g1) {
-            g2 = g2Candidate
-        }
-    }
-    return [g1,g2]
-}
-//https://en.m.wikipedia.org/wiki/Simulated_annealing
-function simulatedAnnealing(groups, iterations){
-    let solutionScore = scoreSolution(groups)
-
-    for(var i = 0; i<iterations; i++) {
-        let groupSwapInfo = getGroupsForSwap(groups)
-        let g1 = groupSwapInfo[0]
-        let g2 = groupSwapInfo[1]
-
-        //This may happens if we cant choose two groups
-        if(g1 == null || g2 == null)
-            break;
-
-        // Swap two players
-        let g1SwapInfo = g1.getPlayerForSwap()
-        let g2SwapInfo = g2.getPlayerForSwap()
-
-        let g1SwapPlayer = g1SwapInfo[0]
-        let g2SwapPlayer = g2SwapInfo[0]
-
-        if(g1SwapPlayer.weight() === g2SwapPlayer.weight()) {
-            continue;
-        }
-
-        g2.setPlayerAtIndex(g2SwapInfo[1],g1SwapPlayer)
-        g1.setPlayerAtIndex(g1SwapInfo[1],g2SwapPlayer)
-
-        let newSolutionScore = scoreSolution(groups)
-        if(newSolutionScore<=solutionScore) {
-            solutionScore = newSolutionScore
-            // console.log('Swap between %s and %s was great: new score %d -> continue',
-            //     g1SwapInfo[0].toString(), g2SwapInfo[0].toString(), newSolutionScore)
-        }
-        else {
-            //Unswap -> this was bad decision
-            g1.setPlayerAtIndex(g1SwapInfo[1], g1SwapPlayer)
-            g2.setPlayerAtIndex(g2SwapInfo[1], g2SwapPlayer)
-        }
-
-        //Best solution found
-        if(newSolutionScore === 0.0) {
-            console.log('Perfect partition found at %d iteration', i)
-            break
-        }
-    }
-    return [groups, solutionScore]
-}
 
 /* Randomize array in-place using Durstenfeld shuffle algorithm */
 function shuffleArray(array) {
@@ -413,11 +397,4 @@ function shuffleArray(array) {
         array[i] = array[j];
         array[j] = temp;
     }
-}
-
-function getRandomInt(min, max) {
-    //The maximum is exclusive and the minimum is inclusive
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min) + min);
 }
