@@ -6,6 +6,7 @@ class PlayerDTO{
     constructor(name, weight) {
         this._name = name
         this._weight = weight
+        this._woman = name.startsWith('.')
     }
 
     static fromString(value) {
@@ -18,6 +19,10 @@ class PlayerDTO{
         const player = matchInfo[1]
         const weight = parseFloat(matchInfo[2].trim())
         return new PlayerDTO(player, weight)
+    }
+
+    isWoman() {
+        return this._woman
     }
 
     weight() {
@@ -79,6 +84,16 @@ class PlayerGroup {
             totalWeight += p.weight()
         }
         return totalWeight
+    }
+
+    womanCount(){
+        let womanCount = 0
+        for(let p of this._players) {
+            if(p.isWoman()) {
+                womanCount++;
+            }
+        }
+        return womanCount
     }
 
     showOnGUI() {
@@ -258,7 +273,7 @@ function generateGroups(players, groupCount, playerPerGroup, preDefinedPlayers) 
     }
     let scoreLabel = document.getElementById('scoreLabel')
     let solutionQuality = simulatedSolution[1]
-    if(solutionQuality === 0) {
+    if(solutionQuality <= 0.25) {
         scoreLabel.style.color = 'green'
     }
     else {
@@ -312,11 +327,24 @@ function scoreSolution(groups) {
     let maxGroupW = -Infinity
     let minGroupW = +Infinity
 
+    let maxWomanCount = -Infinity
+    let minWomanCount = +Infinity
+
     for(let g of groups) {
         maxGroupW = Math.max(g.weight(), maxGroupW)
         minGroupW = Math.min(g.weight(), minGroupW)
+
+        maxWomanCount = Math.max(g.womanCount(), maxWomanCount)
+        minWomanCount = Math.min(g.womanCount(),minWomanCount)
     }
-    return maxGroupW - minGroupW
+
+    let groupFactor = 1 - minGroupW/maxGroupW
+    let womanFactor = 1 - minWomanCount/maxWomanCount
+
+    let groupWeight = 0.5
+    let womanWeight = 0.5
+
+    return groupWeight * groupFactor + womanWeight*womanFactor
 }
 function getGroupsForSwap(groups) {
     let g1 = null
@@ -367,7 +395,9 @@ function simulatedAnnealing(groups, iterations){
         let g1SwapPlayer = g1SwapInfo[0]
         let g2SwapPlayer = g2SwapInfo[0]
 
-        if(g1SwapPlayer.weight() === g2SwapPlayer.weight()) {
+        let equalPlayers = g1SwapPlayer.weight() === g2SwapPlayer.weight()
+        equalPlayers = equalPlayers && (g1SwapPlayer.isWoman() === g2SwapPlayer.isWoman())
+        if(equalPlayers) {
             continue;
         }
 
