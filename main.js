@@ -339,10 +339,14 @@ function scoreSolution(groups) {
     }
 
     let groupFactor = 1 - minGroupW/maxGroupW
-    let womanFactor = 1 - minWomanCount/maxWomanCount
 
-    let groupWeight = 0.5
+    let womanFactor = 0
+    if(maxWomanCount > 0) {
+        womanFactor = 1 - minWomanCount / maxWomanCount
+    }
+
     let womanWeight = 0.5
+    let groupWeight = 1 - womanWeight
 
     return groupWeight * groupFactor + womanWeight*womanFactor
 }
